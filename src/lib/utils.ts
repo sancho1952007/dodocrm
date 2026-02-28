@@ -6,8 +6,8 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export const STAGE_LABELS: Record<string, string> = {
-  MEETING_SCHEDULED: "Meeting Scheduled",
-  MEETING_DONE: "Meeting Done",
+  MEETING_SCHEDULED: "Demo Scheduled",
+  MEETING_DONE: "Demo Done",
   PRODUCT_VERIFICATION_SUBMITTED: "Product Verification",
   PAYOUT_VERIFICATION_SUBMITTED: "Payout Verification",
   TRANSACTING_BUSINESS: "Transacting",

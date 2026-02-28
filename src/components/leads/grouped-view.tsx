@@ -102,11 +102,6 @@ export function GroupedView({
                       </span>
                     )}
 
-                    {/* Email */}
-                    <p className="text-[11px] text-[#71717a] truncate mb-2 font-sub">
-                      {lead.email}
-                    </p>
-
                     {/* Next Action */}
                     {lead.nextAction && (
                       <div className="flex items-start gap-1.5 mb-2.5 bg-blue-50/60 rounded-md px-2 py-1.5 dark:bg-blue-950/15">

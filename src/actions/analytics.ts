@@ -103,42 +103,121 @@ export async function getAnalytics(filters?: {
     };
   });
 
-  // Leads created per week (last 12 weeks)
-  const twelveWeeksAgo = new Date();
-  twelveWeeksAgo.setDate(twelveWeeksAgo.getDate() - 84);
-
-  const recentLeads = await prisma.lead.findMany({
-    where: {
-      ...leadWhere,
-      createdAt: { gte: twelveWeeksAgo },
-    },
-    select: { createdAt: true },
-  });
-
-  const weekBuckets: Record<string, number> = {};
-  for (let i = 0; i < 12; i++) {
-    const weekStart = new Date();
-    weekStart.setDate(weekStart.getDate() - (11 - i) * 7);
-    const key = weekStart.toISOString().slice(0, 10);
-    weekBuckets[key] = 0;
+  // Demos scheduled — daily (last 12 days), weekly (last 12 weeks), monthly (last 12 months)
+  function getMonday(d: Date): Date {
+    const date = new Date(d);
+    const day = date.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    date.setDate(date.getDate() + diff);
+    date.setHours(0, 0, 0, 0);
+    return date;
   }
 
-  for (const lead of recentLeads) {
-    const d = new Date(lead.createdAt);
-    // Find which week bucket
-    const weekKeys = Object.keys(weekBuckets);
-    for (let i = weekKeys.length - 1; i >= 0; i--) {
-      if (d >= new Date(weekKeys[i])) {
-        weekBuckets[weekKeys[i]]++;
-        break;
+  // Fetch all demos from last 12 months (covers all 3 ranges)
+  const twelveMonthsAgo = new Date();
+  twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+  twelveMonthsAgo.setDate(1);
+  twelveMonthsAgo.setHours(0, 0, 0, 0);
+
+  const allDemos = await prisma.lead.findMany({
+    where: {
+      ...leadWhere,
+      meetingScheduledAt: { gte: twelveMonthsAgo },
+    },
+    select: { meetingScheduledAt: true },
+  });
+
+  // --- Daily: last 12 days ---
+  const dayBuckets: Record<string, number> = {};
+  for (let i = 0; i < 12; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - (11 - i));
+    dayBuckets[d.toISOString().slice(0, 10)] = 0;
+  }
+  for (const lead of allDemos) {
+    if (lead.meetingScheduledAt) {
+      const key = new Date(lead.meetingScheduledAt).toISOString().slice(0, 10);
+      if (dayBuckets[key] !== undefined) dayBuckets[key]++;
+    }
+  }
+  const demosDaily = Object.entries(dayBuckets).map(([key, demos]) => ({
+    label: new Date(key).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+    demos,
+  }));
+
+  // --- Weekly: last 12 weeks (Monday-aligned) ---
+  const currentMonday = getMonday(new Date());
+  const twelveWeeksAgo = new Date(currentMonday);
+  twelveWeeksAgo.setDate(twelveWeeksAgo.getDate() - 11 * 7);
+
+  const weekBuckets: Record<string, number> = {};
+  const weekLabels: Record<string, string> = {};
+  for (let i = 0; i < 12; i++) {
+    const monday = new Date(twelveWeeksAgo);
+    monday.setDate(monday.getDate() + i * 7);
+    const key = monday.toISOString().slice(0, 10);
+    weekBuckets[key] = 0;
+    weekLabels[key] = monday.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  }
+  for (const lead of allDemos) {
+    if (lead.meetingScheduledAt) {
+      const monday = getMonday(new Date(lead.meetingScheduledAt));
+      const key = monday.toISOString().slice(0, 10);
+      if (weekBuckets[key] !== undefined) weekBuckets[key]++;
+    }
+  }
+  const demosWeekly = Object.entries(weekBuckets).map(([key, demos]) => ({
+    label: weekLabels[key],
+    demos,
+  }));
+
+  // --- Monthly: last 12 months ---
+  const monthBuckets: Record<string, number> = {};
+  for (let i = 0; i < 12; i++) {
+    const d = new Date();
+    d.setMonth(d.getMonth() - (11 - i));
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    monthBuckets[key] = 0;
+  }
+  for (const lead of allDemos) {
+    if (lead.meetingScheduledAt) {
+      const d = new Date(lead.meetingScheduledAt);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      if (monthBuckets[key] !== undefined) monthBuckets[key]++;
+    }
+  }
+  const demosMonthly = Object.entries(monthBuckets).map(([key, demos]) => ({
+    label: new Date(key + "-01").toLocaleDateString("en-US", { month: "short", year: "2-digit" }),
+    demos,
+  }));
+
+  // --- Calendar: current month day-by-day ---
+  const now = new Date();
+  const calendarMonth = now.getMonth();
+  const calendarYear = now.getFullYear();
+  const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+  const calendarDemos: Record<number, number> = {};
+  for (let d = 1; d <= daysInMonth; d++) calendarDemos[d] = 0;
+  let calendarTotal = 0;
+  for (const lead of allDemos) {
+    if (lead.meetingScheduledAt) {
+      const dt = new Date(lead.meetingScheduledAt);
+      if (dt.getMonth() === calendarMonth && dt.getFullYear() === calendarYear) {
+        calendarDemos[dt.getDate()]++;
+        calendarTotal++;
       }
     }
   }
+  const calendarData = {
+    month: now.toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+    total: calendarTotal,
+    firstDayOfWeek: new Date(calendarYear, calendarMonth, 1).getDay(), // 0=Sun
+    daysInMonth,
+    days: Object.entries(calendarDemos).map(([day, count]) => ({ day: Number(day), count })),
+  };
 
-  const leadsPerWeek = Object.entries(weekBuckets).map(([week, count]) => ({
-    week: new Date(week).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-    count,
-  }));
+  // --- Last 6 months bar chart ---
+  const last6Months = demosMonthly.slice(-6);
 
   // At-risk leads: overdue next action OR stuck in stage > 14 days
   const fourteenDaysAgo = new Date();
@@ -178,7 +257,11 @@ export async function getAnalytics(filters?: {
     stageCounts: STAGE_ORDER.map((s) => ({ stage: s, count: stageCountsMap[s] || 0 })),
     funnel,
     avgTimePerStage,
-    leadsPerWeek,
+    demosDaily,
+    demosWeekly,
+    demosMonthly,
+    calendarData,
+    last6Months,
     atRiskLeads,
     leadsByTier: leadsByTier.map((r) => ({ tier: r.tier, count: r._count.id })),
     leadsByCategory: leadsByCategory

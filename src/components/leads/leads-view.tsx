@@ -95,7 +95,7 @@ export function LeadsView({
           <div className="flex items-center justify-between mb-3">
             <div>
               <h1 className="text-lg font-semibold text-[#18181b] tracking-tight dark:text-white">
-                Leads
+                Product Demo Leads
               </h1>
               <p className="text-[13px] text-[#71717a] mt-0.5 font-sub">
                 {leads.length} lead{leads.length !== 1 ? "s" : ""} across {STAGE_ORDER.length} stages
