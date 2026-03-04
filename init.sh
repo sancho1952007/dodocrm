@@ -3,7 +3,7 @@ set -e
 
 # Run Prisma migrations/push to ensure the DB structure is initialized
 echo "Running Prisma db push..."
-npx prisma db push --accept-data-loss
+npx prisma db push --accept-data-loss --skip-generate
 
 
 # Start the Node.js application
