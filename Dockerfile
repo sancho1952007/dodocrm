@@ -1,20 +1,15 @@
 # ---- Base Node ----
-FROM node:24-alpine AS base
+FROM node:24-slim AS base
+RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
 # ---- Dependencies ----
 FROM base AS deps
-# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
-RUN apk add --no-cache libc6-compat
 COPY package.json package-lock.json* bun.lock* ./
-# Install dependencies prioritizing npm over bun just for standard docker unless bun is preferred.
-# Since bun.lock is present, we will use it if installed, but installing bun is an extra step. Let's use npm.
 RUN npm install
 
 # ---- Build ----
 FROM base AS builder
-# Prisma 5.x needs OpenSSL 1.1 which isn't in Alpine 3.21+ (Node 24)
-RUN apk add --no-cache openssl1.1-compat
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
@@ -32,24 +27,22 @@ RUN npm run build
 # ---- Production ----
 FROM base AS runner
 
-# Prisma 5.x needs OpenSSL 1.1 compat + curl for healthcheck
-RUN apk add --no-cache openssl1.1-compat curl
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATABASE_URL="file:/app/data/sqlite.db"
 ENV PORT=3000
 
-# Create the persistent data directory with proper permissions
-RUN mkdir -p /app/data && chown -R node:node /app/data
+# Create the persistent data directory
+RUN mkdir -p /app/data
 
-# Create user group so we don't run as root
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# Create non-root user
+RUN groupadd --system --gid 1001 nodejs && \
+    useradd --system --uid 1001 --gid nodejs nextjs
 
 # Install prisma CLI for the init script
 RUN npm install prisma@^5.22.0
-
 
 # Copy the standalone output
 COPY --from=builder /app/public ./public
@@ -72,7 +65,7 @@ EXPOSE 3000
 
 ENV HOSTNAME="0.0.0.0"
 
-# Add a healthcheck (optional, helps Dokploy / Docker restart logic)
+# Healthcheck for Dokploy
 HEALTHCHECK --interval=30s --timeout=3s \
   CMD curl -f http://localhost:3000/api/health || exit 1
 
