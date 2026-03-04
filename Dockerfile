@@ -41,8 +41,8 @@ RUN mkdir -p /app/data
 RUN groupadd --system --gid 1001 nodejs && \
     useradd --system --uid 1001 --gid nodejs nextjs
 
-# Install prisma CLI for the init script
-RUN npm install prisma@^5.22.0
+# Install deps needed for prisma db push + seed script on first run
+RUN npm install prisma@^5.22.0 @prisma/client@^5.22.0 bcryptjs tsx
 
 # Copy the standalone output
 COPY --from=builder /app/public ./public
