@@ -13,8 +13,13 @@ RUN npm install
 
 # ---- Build ----
 FROM base AS builder
+# Prisma 5.x needs OpenSSL 1.1 which isn't in Alpine 3.21+ (Node 24)
+RUN apk add --no-cache openssl1.1-compat
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+
+# Ensure public directory exists (Next.js standalone expects it)
+RUN mkdir -p public
 
 # Environment variable specifically for Prisma logic during build
 ENV DATABASE_URL="file:/app/data/sqlite.db"
@@ -27,8 +32,8 @@ RUN npm run build
 # ---- Production ----
 FROM base AS runner
 
-# We add openssl because prisma requires it for connecting to SQLite/DB depending on alpine version
-RUN apk add --no-cache openssl curl
+# Prisma 5.x needs OpenSSL 1.1 compat + curl for healthcheck
+RUN apk add --no-cache openssl1.1-compat curl
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
