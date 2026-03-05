@@ -116,12 +116,16 @@ export function GroupedView({
                     <div className="flex items-center gap-2 pt-2 border-t border-[#f4f4f5] dark:border-[#1e1e1e]">
                       {lead.owner ? (
                         <div className="flex items-center gap-1.5">
-                          <div
-                            className="w-4.5 h-4.5 rounded-full flex items-center justify-center text-[8px] font-bold text-white"
-                            style={{ backgroundColor: getOwnerColor(lead.owner.name), width: 18, height: 18 }}
-                          >
-                            {getInitials(lead.owner.name)}
-                          </div>
+                          {lead.owner.image ? (
+                            <img src={lead.owner.image} alt={lead.owner.name} className="rounded-full object-cover flex-shrink-0" style={{ width: 18, height: 18 }} />
+                          ) : (
+                            <div
+                              className="rounded-full flex items-center justify-center text-[8px] font-bold text-white"
+                              style={{ backgroundColor: getOwnerColor(lead.owner.name), width: 18, height: 18 }}
+                            >
+                              {getInitials(lead.owner.name)}
+                            </div>
+                          )}
                           <span className="text-[11px] font-medium text-[#52525b] dark:text-[#71717a]">
                             {lead.owner.name}
                           </span>

@@ -141,9 +141,13 @@ export function TableView({
               <td className="px-4 py-2.5">
                 {lead.owner ? (
                   <div className="flex items-center gap-1.5">
-                    <div className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0" style={{ backgroundColor: getOwnerColor(lead.owner.name) }}>
-                      {getInitials(lead.owner.name)}
-                    </div>
+                    {lead.owner.image ? (
+                      <img src={lead.owner.image} alt={lead.owner.name} className="w-5 h-5 rounded-full object-cover flex-shrink-0" />
+                    ) : (
+                      <div className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0" style={{ backgroundColor: getOwnerColor(lead.owner.name) }}>
+                        {getInitials(lead.owner.name)}
+                      </div>
+                    )}
                     <span className="text-[12px] text-[#3f3f46] font-medium dark:text-[#a1a1aa]">{lead.owner.name}</span>
                   </div>
                 ) : (

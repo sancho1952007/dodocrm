@@ -40,6 +40,7 @@ export const authOptions: NextAuthOptions = {
           id: user.id,
           email: user.email,
           name: user.name,
+          image: user.image,
           role: user.role as "ADMIN" | "MEMBER",
         };
       },
@@ -58,14 +59,18 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = (user as any).role;
+        token.image = (user as any).image ?? null;
       }
-      // Refresh role from DB periodically
+      // Refresh role and image from DB periodically
       if (token.id && !user) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: { role: true },
+          select: { role: true, image: true },
         });
-        if (dbUser) token.role = dbUser.role as "ADMIN" | "MEMBER";
+        if (dbUser) {
+          token.role = dbUser.role as "ADMIN" | "MEMBER";
+          token.image = dbUser.image ?? null;
+        }
       }
       return token;
     },
@@ -73,6 +78,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         (session.user as any).id = token.id;
         (session.user as any).role = token.role;
+        session.user.image = token.image as string | null | undefined;
       }
       return session;
     },

@@ -380,9 +380,13 @@ export function LeadDrawer({
               {lead.notes?.map((note: any) => (
                 <div key={note.id} className="bg-white rounded-lg p-3.5 border dark:bg-[#111113] dark:border-[#1e1e1e]">
                   <div className="flex items-center gap-2 mb-1.5">
-                    <div className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold" style={{ backgroundColor: getOwnerColor(note.author?.name || "") }}>
-                      {getInitials(note.author?.name || "?")}
-                    </div>
+                    {note.author?.image ? (
+                      <img src={note.author.image} alt={note.author.name} className="w-5 h-5 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold" style={{ backgroundColor: getOwnerColor(note.author?.name || "") }}>
+                        {getInitials(note.author?.name || "?")}
+                      </div>
+                    )}
                     <span className="text-[13px] font-medium text-[#3f3f46] dark:text-[#a1a1aa]">{note.author?.name || "Unknown"}</span>
                     <span className="text-[11px] text-[#a1a1aa] ml-auto">{timeAgo(note.createdAt)}</span>
                   </div>

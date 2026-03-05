@@ -16,10 +16,10 @@ async function getSessionUser() {
   // Verify user still exists in DB (handles re-seed / stale session)
   const dbUser = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, name: true, email: true, role: true },
+    select: { id: true, name: true, email: true, role: true, image: true },
   });
   if (!dbUser) return null;
-  return { id: dbUser.id, name: dbUser.name, email: dbUser.email, role: dbUser.role };
+  return { id: dbUser.id, name: dbUser.name, email: dbUser.email, role: dbUser.role, image: dbUser.image };
 }
 
 // ─── Fetch Leads ───────────────────────────────────────────────
@@ -57,7 +57,7 @@ export async function getLeads(filters?: {
   return prisma.lead.findMany({
     where,
     include: {
-      owner: { select: { id: true, name: true, email: true } },
+      owner: { select: { id: true, name: true, email: true, image: true } },
       _count: { select: { notes: true } },
     },
     orderBy: { updatedAt: "desc" },
@@ -72,9 +72,9 @@ export async function getLead(id: string) {
   return prisma.lead.findUnique({
     where: { id },
     include: {
-      owner: { select: { id: true, name: true, email: true } },
+      owner: { select: { id: true, name: true, email: true, image: true } },
       notes: {
-        include: { author: { select: { id: true, name: true } } },
+        include: { author: { select: { id: true, name: true, image: true } } },
         orderBy: { createdAt: "desc" },
       },
       stageHistory: {
@@ -227,7 +227,7 @@ export async function addNote(data: unknown): Promise<ActionResult> {
         createdBy: user.id,
       },
       include: {
-        author: { select: { id: true, name: true } },
+        author: { select: { id: true, name: true, image: true } },
       },
     });
 
