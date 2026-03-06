@@ -24,10 +24,20 @@ const navItems = [
 export function Sidebar({ user }: { user: { name: string; email: string; role: string; image?: string | null } }) {
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(user.image ?? null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [showZoom, setShowZoom] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch avatar from DB on mount (not from JWT to avoid cookie size issues)
+  useEffect(() => {
+    fetch("/api/user/me")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.image) setAvatarUrl(data.image);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!showZoom) return;
@@ -164,7 +174,7 @@ export function Sidebar({ user }: { user: { name: string; email: string; role: s
                 form.append("file", file);
                 const res = await fetch("/api/user/upload-avatar", { method: "POST", body: form });
                 const data = await res.json();
-                if (data.image) setAvatarUrl(data.image + "?t=" + Date.now());
+                if (data.image) setAvatarUrl(data.image);
               } finally {
                 setUploading(false);
                 e.target.value = "";

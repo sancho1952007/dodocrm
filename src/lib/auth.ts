@@ -40,7 +40,7 @@ export const authOptions: NextAuthOptions = {
           id: user.id,
           email: user.email,
           name: user.name,
-          image: user.image,
+          image: null,
           role: user.role as "ADMIN" | "MEMBER",
         };
       },
@@ -59,17 +59,15 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = (user as any).role;
-        token.image = (user as any).image ?? null;
       }
-      // Refresh role and image from DB periodically
+      // Refresh role from DB periodically (NOT image - it's too large for JWT)
       if (token.id && !user) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: { role: true, image: true },
+          select: { role: true },
         });
         if (dbUser) {
           token.role = dbUser.role as "ADMIN" | "MEMBER";
-          token.image = dbUser.image ?? null;
         }
       }
       return token;
@@ -78,7 +76,8 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         (session.user as any).id = token.id;
         (session.user as any).role = token.role;
-        session.user.image = token.image as string | null | undefined;
+        // Don't put image in session/JWT - fetch from DB when needed
+        session.user.image = null;
       }
       return session;
     },
