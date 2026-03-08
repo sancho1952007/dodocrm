@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { updateLead } from "@/actions/leads";
 import {
   Plus,
   Search,
@@ -56,6 +57,17 @@ export function LeadsView({
   const [showCreate, setShowCreate] = useState(false);
   const [searchInput, setSearchInput] = useState(filters.search || "");
   const [showFilters, setShowFilters] = useState(false);
+  const [, startTransition] = useTransition();
+
+  const handleStageDrop = useCallback(
+    async (leadId: string, newStage: string) => {
+      await updateLead(leadId, { stage: newStage });
+      startTransition(() => {
+        router.refresh();
+      });
+    },
+    [router]
+  );
 
   const updateFilter = useCallback(
     (key: string, value: string) => {
@@ -240,7 +252,7 @@ export function LeadsView({
       {/* Content */}
       <div className="flex-1 overflow-hidden">
         {view === "grouped" ? (
-          <GroupedView grouped={grouped} onSelectLead={setSelectedLeadId} />
+          <GroupedView grouped={grouped} onSelectLead={setSelectedLeadId} onStageDrop={handleStageDrop} />
         ) : (
           <div className="h-full overflow-auto">
             <TableView leads={leads} onSelectLead={setSelectedLeadId} />
